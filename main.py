@@ -3,11 +3,17 @@ from PIL import Image
 
 
 def local_mean_std(img, window_size):
-    if window_size % 2 == 0 or window_size < 3:
-        raise ValueError("window_size должен быть нечётным и >= 3")
+    if window_size < 1:
+        raise ValueError("window_size должен быть >= 1")
 
-    pad = window_size // 2
-    padded = np.pad(img, pad, mode='reflect')
+    pad_before = window_size // 2
+    pad_after = window_size - pad_before - 1
+
+    padded = np.pad(
+        img,
+        ((pad_before, pad_after), (pad_before, pad_after)),
+        mode='reflect'
+    )
 
     h, w = img.shape
     mu = np.zeros((h, w), dtype=np.float32)
@@ -16,6 +22,7 @@ def local_mean_std(img, window_size):
     for i in range(h):
         for j in range(w):
             window = padded[i:i + window_size, j:j + window_size]
+
             mu[i, j] = np.mean(window)
             sigma[i, j] = np.std(window)
 
