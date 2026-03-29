@@ -1,6 +1,8 @@
+import numpy as np
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog
 from PIL import ImageTk
+import matplotlib.pyplot as plt
 
 from app.config import (
     WINDOW_SIZE_DEFAULT,
@@ -13,7 +15,7 @@ from app.config import (
 )
 
 from app.image_io import open_image_dialog, save_image_dialog
-from app.image_processing import process_color_image_with_alpha
+from app.image_processing import process_color_image_with_alpha, get_luminance_array
 
 
 def _create_scrollable_canvas(parent, title):
@@ -50,10 +52,15 @@ class AdaptiveContrastApp:
         self.original_photo = None
         self.result_photo = None
 
+        self.original_luminance = None
+        self.result_luminance = None
+
+        self.selected_x = None
+        self.selected_y = None
+
         self._build_ui()
 
     def _build_ui(self):
-        # Верхняя панель параметров
         params_frame = tk.Frame(self.root)
         params_frame.pack(pady=5)
 
@@ -82,7 +89,6 @@ class AdaptiveContrastApp:
         self.entry_k3.grid(row=0, column=9, padx=5)
         self.entry_k3.insert(0, K3_DEFAULT)
 
-        # Кнопки
         buttons_frame = tk.Frame(self.root)
         buttons_frame.pack(pady=5)
 
@@ -104,11 +110,35 @@ class AdaptiveContrastApp:
             command=self.save_image
         ).pack(side="left", padx=5)
 
-        # Информация
+        tk.Button(
+            buttons_frame,
+            text="Гистограммы",
+            command=self.show_histograms
+        ).pack(side="left", padx=5)
+
+        tk.Button(
+            buttons_frame,
+            text="Разрез по строке",
+            command=self.show_row_profile
+        ).pack(side="left", padx=5)
+
+        tk.Button(
+            buttons_frame,
+            text="Разрез по столбцу",
+            command=self.show_col_profile
+        ).pack(side="left", padx=5)
+
         self.info_label = tk.Label(self.root, text="Изображение не загружено")
         self.info_label.pack(pady=5)
 
-        # Область для двух изображений
+        self.pixel_info_label = tk.Label(
+            self.root,
+            text="Пиксель не выбран",
+            justify="left",
+            anchor="w"
+        )
+        self.pixel_info_label.pack(fill="x", padx=10, pady=5)
+
         images_frame = tk.Frame(self.root)
         images_frame.pack(fill="both", expand=True)
 
@@ -120,6 +150,16 @@ class AdaptiveContrastApp:
         self.canvas_result = _create_scrollable_canvas(
             images_frame,
             "Результат обработки"
+        )
+
+        self.canvas_original.bind(
+            "<Button-1>",
+            lambda event: self.on_canvas_click(event, self.canvas_original, self.original_image)
+        )
+
+        self.canvas_result.bind(
+            "<Button-1>",
+            lambda event: self.on_canvas_click(event, self.canvas_result, self.result_image)
         )
 
     def show_image_on_canvas(self, canvas, pil_image, image_type):
@@ -142,6 +182,10 @@ class AdaptiveContrastApp:
 
             self.original_image = image
             self.result_image = None
+            self.original_luminance, _, _, _, _ = get_luminance_array(self.original_image)
+            self.result_luminance = None
+            self.selected_x = None
+            self.selected_y = None
 
             self.show_image_on_canvas(self.canvas_original, self.original_image, "original")
             self.canvas_result.delete("all")
@@ -154,6 +198,9 @@ class AdaptiveContrastApp:
                     f"Режим: {self.original_image.mode}"
                 )
             )
+
+            self.pixel_info_label.config(text="Пиксель не выбран")
+
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось открыть изображение:\n{e}")
 
@@ -178,6 +225,8 @@ class AdaptiveContrastApp:
                 k3=k3
             )
 
+            self.result_luminance = get_luminance_array(self.result_image)
+
             self.show_image_on_canvas(self.canvas_result, self.result_image, "result")
 
             self.info_label.config(
@@ -187,6 +236,9 @@ class AdaptiveContrastApp:
                     f"k1={k1}, k2={k2}, k3={k3}"
                 )
             )
+
+            if self.selected_x is not None and self.selected_y is not None:
+                self.update_pixel_info(self.selected_x, self.selected_y)
 
         except Exception as e:
             messagebox.showerror("Ошибка", f"Ошибка обработки:\n{e}")
@@ -204,3 +256,120 @@ class AdaptiveContrastApp:
             messagebox.showinfo("Успех", f"Результат сохранён:\n{file_path}")
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось сохранить изображение:\n{e}")
+
+    def _canvas_to_image_coords(self, canvas, event):
+        x = int(canvas.canvasx(event.x))
+        y = int(canvas.canvasy(event.y))
+        return x, y
+
+    def on_canvas_click(self, event, canvas, image):
+        if image is None:
+            return
+
+        x, y = self._canvas_to_image_coords(canvas, event)
+
+        if 0 <= x < image.width and 0 <= y < image.height:
+            self.selected_x = x
+            self.selected_y = y
+            self.update_pixel_info(x, y)
+
+    def update_pixel_info(self, x, y):
+        if self.original_luminance is None:
+            return
+
+        y_orig = self.original_luminance[y, x]
+
+        text = f"Координаты пикселя: x={x}, y={y} | Яркость исходного: {y_orig:.2f}"
+
+        if self.result_luminance is not None:
+            y_res = self.result_luminance[y, x]
+            text += f" | Яркость обработанного: {y_res:.2f} | Δ={y_res - y_orig:.2f}"
+        else:
+            text += " | Обработанное изображение ещё не построено"
+
+        self.pixel_info_label.config(text=text)
+
+    def show_histograms(self):
+        if self.original_luminance is None:
+            messagebox.showwarning("Предупреждение", "Сначала загрузите изображение")
+            return
+
+        plt.figure()
+        plt.hist(self.original_luminance.ravel(), bins=256, range=(0, 255), alpha=0.6, label="Исходное")
+        if self.result_luminance is not None:
+            plt.hist(self.result_luminance.ravel(), bins=256, range=(0, 255), alpha=0.6, label="Обработанное")
+
+        plt.title("Гистограммы яркости")
+        plt.xlabel("Яркость")
+        plt.ylabel("Количество пикселей")
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+    def show_row_profile(self):
+        if self.original_luminance is None:
+            messagebox.showwarning("Предупреждение", "Сначала загрузите изображение")
+            return
+
+        if self.selected_y is not None:
+            initial_value = self.selected_y
+        else:
+            initial_value = 0
+
+        row = simpledialog.askinteger(
+            "Разрез по строке",
+            f"Введите номер строки [0..{self.original_image.height - 1}]",
+            initialvalue=initial_value,
+            minvalue=0,
+            maxvalue=self.original_image.height - 1
+        )
+        if row is None:
+            return
+
+        x = np.arange(self.original_image.width)
+
+        plt.figure()
+        plt.plot(x, self.original_luminance[row, :], label="Исходное")
+        if self.result_luminance is not None:
+            plt.plot(x, self.result_luminance[row, :], label="Обработанное")
+
+        plt.title(f"Разрез яркости по строке y={row}")
+        plt.xlabel("x")
+        plt.ylabel("Яркость")
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+    def show_col_profile(self):
+        if self.original_luminance is None:
+            messagebox.showwarning("Предупреждение", "Сначала загрузите изображение")
+            return
+
+        if self.selected_x is not None:
+            initial_value = self.selected_x
+        else:
+            initial_value = 0
+
+        col = simpledialog.askinteger(
+            "Разрез по столбцу",
+            f"Введите номер столбца [0..{self.original_image.width - 1}]",
+            initialvalue=initial_value,
+            minvalue=0,
+            maxvalue=self.original_image.width - 1
+        )
+        if col is None:
+            return
+
+        y = np.arange(self.original_image.height)
+
+        plt.figure()
+        plt.plot(y, self.original_luminance[:, col], label="Исходное")
+        if self.result_luminance is not None:
+            plt.plot(y, self.result_luminance[:, col], label="Обработанное")
+
+        plt.title(f"Разрез яркости по столбцу x={col}")
+        plt.xlabel("y")
+        plt.ylabel("Яркость")
+        plt.legend()
+        plt.grid(True)
+        plt.show()

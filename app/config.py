@@ -6,3 +6,15 @@ K3_DEFAULT = "0.4"
 
 WINDOW_TITLE = "Адаптивное повышение контраста"
 WINDOW_GEOMETRY = "1400x800"
+
+# WINDOW_SIZE_DEFAULT = "9"
+# K0_DEFAULT = "3.5"
+# K1_DEFAULT = "0.3"
+# K2_DEFAULT = "0.015"
+# K3_DEFAULT = "0.3"
+
+# WINDOW_SIZE_DEFAULT = "15"
+# K0_DEFAULT = "5"
+# K1_DEFAULT = "0.1"
+# K2_DEFAULT = "0.001"
+# K3_DEFAULT = "0.2"

@@ -50,15 +50,7 @@ def adaptive_contrast_gray(img, window_size=7, k0=2.0, k1=0.5, k2=0.02, k3=0.4):
 
 
 def process_color_image_with_alpha(img_pil, window_size=7, k0=2.0, k1=0.5, k2=0.02, k3=0.4):
-    img = img_pil.convert("RGBA")
-    img_np = np.array(img).astype(np.float32)
-
-    r = img_np[:, :, 0]
-    g = img_np[:, :, 1]
-    b = img_np[:, :, 2]
-    a = img_np[:, :, 3]
-
-    y = 0.299 * r + 0.587 * g + 0.114 * b
+    y, r, g, b, a = get_luminance_array(img_pil)
 
     y_processed = adaptive_contrast_gray(
         y,
@@ -78,3 +70,16 @@ def process_color_image_with_alpha(img_pil, window_size=7, k0=2.0, k1=0.5, k2=0.
     result = np.stack((r_new, g_new, b_new, a), axis=2).astype(np.uint8)
 
     return Image.fromarray(result, mode="RGBA")
+
+
+def get_luminance_array(img_pil):
+    img = img_pil.convert("RGBA")
+    img_np = np.array(img).astype(np.float32)
+
+    r = img_np[:, :, 0]
+    g = img_np[:, :, 1]
+    b = img_np[:, :, 2]
+    a = img_np[:, :, 3]
+
+    y = 0.299 * r + 0.587 * g + 0.114 * b
+    return y, r, g, b, a
