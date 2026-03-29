@@ -1,7 +1,11 @@
 *
 !main.py
-!input.bmp
-!output.bmp
+!images/input.bmp
+!images/output.bmp
 !app/
 !app/*
 !.gitignore
+!requirements.txt
+!images/
+!images/**
+!README.md
