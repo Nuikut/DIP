@@ -47,25 +47,22 @@ def adaptive_contrast_gray(img, window_size=7, k0=2.0, k1=0.5, k2=0.02, k3=0.4):
 
     result[mask] = k0 * result[mask]
 
-    return np.clip(result, 0, 255).astype(np.uint8)
+    return np.clip(result, 0, 255)
 
 
 def process_color_image_with_alpha(img_pil, window_size=7, k0=2.0, k1=0.5, k2=0.02, k3=0.4):
     img = img_pil.convert("RGBA")
     img_np = np.array(img).astype(np.float32)
 
-    # разделяем
     r = img_np[:, :, 0]
     g = img_np[:, :, 1]
     b = img_np[:, :, 2]
-    a = img_np[:, :, 3]  # альфа сохраняем
+    a = img_np[:, :, 3]
 
-    # яркость
     y = 0.299 * r + 0.587 * g + 0.114 * b
-    y_uint8 = np.clip(y, 0, 255).astype(np.uint8)
 
     y_processed = adaptive_contrast_gray(
-        y_uint8,
+        y,
         window_size=window_size,
         k0=k0,
         k1=k1,
