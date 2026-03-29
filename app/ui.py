@@ -282,7 +282,7 @@ class AdaptiveContrastApp:
         text = f"Координаты пикселя: x={x}, y={y} | Яркость исходного: {y_orig:.2f}"
 
         if self.result_luminance is not None:
-            y_res = self.result_luminance[y, x]
+            y_res = self.result_luminance[0][y, x]
             text += f" | Яркость обработанного: {y_res:.2f} | Δ={y_res - y_orig:.2f}"
         else:
             text += " | Обработанное изображение ещё не построено"

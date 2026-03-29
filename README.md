@@ -44,7 +44,7 @@ git clone https://gitlab.mouse82kg.space/Nuikut/dip && cd dip
 ``` 
 2. Установить зависимости
 ``` bash 
-python -m venv . && pip install requirements.txt
+python -m venv . && source bin/activate && pip install -r requirements.txt
 ``` 
 3. Запустить приложение
 ``` bash 
