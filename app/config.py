@@ -1,0 +1,8 @@
+WINDOW_SIZE_DEFAULT = "7"
+K0_DEFAULT = "2.0"
+K1_DEFAULT = "0.5"
+K2_DEFAULT = "0.02"
+K3_DEFAULT = "0.4"
+
+WINDOW_TITLE = "Адаптивное повышение контраста"
+WINDOW_GEOMETRY = "1400x800"

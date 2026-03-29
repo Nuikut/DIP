@@ -1,0 +1,7 @@
+*
+!main.py
+!input.bmp
+!output.bmp
+!app/
+!app/*
+!.gitignore
