@@ -225,7 +225,7 @@ class AdaptiveContrastApp:
                 k3=k3
             )
 
-            self.result_luminance = get_luminance_array(self.result_image)
+            self.result_luminance, _, _, _, _ = get_luminance_array(self.result_image)
 
             self.show_image_on_canvas(self.canvas_result, self.result_image, "result")
 
@@ -282,7 +282,7 @@ class AdaptiveContrastApp:
         text = f"Координаты пикселя: x={x}, y={y} | Яркость исходного: {y_orig:.2f}"
 
         if self.result_luminance is not None:
-            y_res = self.result_luminance[0][y, x]
+            y_res = self.result_luminance[y, x]
             text += f" | Яркость обработанного: {y_res:.2f} | Δ={y_res - y_orig:.2f}"
         else:
             text += " | Обработанное изображение ещё не построено"
